@@ -7,7 +7,7 @@
 #### Code to reproduce illustrative example:
 
 # Determine missing packages and load them:
-required_packages <- c("MCMCvis", "rjags", "coda", "MCMCpack", "BiasedUrn", "rvest", "runjags", "MASS", "HDInterval", "gridGraphics", "gridExtra", "forestplot", "latex2exp")
+required_packages <- c("quadprog" , "MASS")
 not_installed <- required_packages[!(required_packages %in% installed.packages()[ , "Package"])]    
 if(length(not_installed)) install.packages(not_installed)                                           
 suppressWarnings(lapply(required_packages, require, character.only = TRUE))
@@ -91,9 +91,6 @@ OD <- simulate_data(K = 12, kprime=0, theta = cloglog(0.02),  tausquared = 0.005
 print(cbind(OD$df[,c(2:4)], CC=matrix(unlist(OD$CC),12,), phi=matrix(unlist(OD$phi),12,), OD$df[,c(5,6,7)]), digits=3)
 
 sd(OD$df$IFR)
-
-#install.packages("quadprog")
-library(quadprog)
 
 minvar <- function(mn, theta.lo, theta.hi) {
 
@@ -246,7 +243,7 @@ for(ii in 1:3){
   if(ii==3){
     plot(-1,-1, xlim=c(1,k),ylim=c(0,.25), xlab="k",     ylab="IFR", main= expression(paste(gamma," = 22,   ", bar(tau), " = 0.002")),xaxt ="n");axis(1, at=1:12)}
   
-  gblim<-IDint(tau_max, a=theta*lambda, b= 1-(1-lambda)^phi, phi.lo=rep(1,k), phi.hi=rep(40,k), theta.tr=0.02, tol=0.0001)  
+  gblim<-IDint(tau_max, a=theta*lambda, b= 1-(1-lambda)^phi, phi.lo=rep(1,k), phi.hi=rep(40,k), theta.tr=0.02, tol=0.00001)  
   
   rect(1,gblim[1],k,gblim[2], col="lightgreen", border=NA)
   print(paste(ii," tau_bar=",tau_max))
