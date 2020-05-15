@@ -180,7 +180,7 @@ sd(OD$df$IFR)
 
 
 ### various IRs
-lambda <- c(140, 206, 303, 190, 159, 132, 137, 526, 212, 160, 164, 245)/1000
+lambda <- OD$df$IR
 phi_list<-list()
 phi_list[[3]] <- seq(1,23, length.out=12)
 phi_list[[2]] <- seq(1,12)
