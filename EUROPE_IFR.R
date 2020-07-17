@@ -562,8 +562,8 @@ datalist <- list(kprime=sum(OB$sero), K=dim(OB)[1],  D=round(OB$D), P=round(OB$P
 
 
 MAAD <- stan(model_code = stan_mod_cov,
-                 iter = 5000, 
-                 warmup = 1000,
+                 iter = 3000, 
+                 warmup = 300,
                  data = datalist,
                  chains = 4,
                  thin = 100,
@@ -576,8 +576,9 @@ MAAD <- stan(model_code = stan_mod_cov,
 rstan::traceplot(MAAD, par=c("icloglogtheta","icloglogbeta"))
 rstan::traceplot(MAAD, par=c("theta1","theta2"))
 rstan::traceplot(MAAD, par=c("beta1","beta2"))
-## results
+rstan::traceplot(MAAD, par=c("predictIR","predictIFR"))
 
+## results
 100*summary(MAAD)$summary["icloglogtheta", c("50%", "2.5%", "97.5%")]
 100*summary(MAAD)$summary["icloglogbeta", c("50%", "2.5%", "97.5%")]
 
@@ -624,10 +625,15 @@ e <- d + theme_bw()
 
 IFR_raw <- phi1_all[, c("IFR_low",  "IFR_high")]
 
-NAmat<-matrix(rep(c(NA,NA),dim(meta_IR_plus)[1]-dim(IR_raw)[1]),,2)
+NAmat<-matrix(rep(c(NA,NA), dim(meta_IFR)[1]-dim(IFR_raw)[1]),,2)
 colnames(NAmat)<-c("IFR_low",  "IFR_high")
 
-IFRplot<-e+ geom_pointrange(data=cbind(meta_IFR_plus , rbind(IFR_raw, NAmat)), aes(x=Study,ymax=IFR_high,ymin=IFR_low), lwd=.82, pch="", cex=0.3, col="lightgrey", position = position_nudge(x = -0.15))
+model_predictIFR <- data.frame(IFR_low = 100*icloglog(summary_md_ci_MAAD("predictIFR")[2]), IFR_high = 100*icloglog(summary_md_ci_MAAD("predictIFR")[3]))
+
+IFR_extra<-rbind(IFR_raw, NAmat, model_predictIFR)
+
+
+IFRplot<-e+ geom_pointrange(data=cbind(meta_IFR_plus , IFR_extra), aes(x=Study,ymax=IFR_high,ymin=IFR_low), lwd=.82, pch="", cex=0.3, col=c(rep("lightgrey", dim(rbind(IFR_raw,NAmat))[1]),"lightblue"), position = position_nudge(x = -0.15))
 IFRplot
 
 
@@ -662,9 +668,6 @@ e <- d + theme_bw()
 IRplot <- e 
 IRplot
 
-
-
-
 IR_raw <- phi1_all[, c("IR_low",  "IR_high")]
 
 NAmat<-matrix(rep(c(NA,NA),dim(meta_IR_plus)[1]-dim(IR_raw)[1]),,2)
@@ -672,6 +675,24 @@ colnames(NAmat)<-c("IR_low",  "IR_high")
 IRplot <- e + geom_pointrange(data=cbind(meta_IR_plus , rbind(IR_raw, NAmat)), aes(x=Study,ymax=IR_high,ymin=IR_low), lwd=.82, pch="", cex=0.3, col="lightgrey", position = position_nudge(x = -0.15))
 
 IRplot
+
+
+
+IR_raw <- phi1_all[, c("IR_low", "IR_high")]
+
+NAmat<-matrix(rep(c(NA,NA), dim(meta_IR)[1]-dim(IR_raw)[1]),,2)
+colnames(NAmat)<-c("IR_low",  "IR_high")
+
+model_predictIR <- data.frame(IR_low = 100*icloglog(summary_md_ci_MAAD("predictIR")[2]), IR_high = 100*icloglog(summary_md_ci_MAAD("predictIR")[3]))
+
+IR_extra<-rbind(IR_raw, NAmat, model_predictIR)
+
+
+IRplot<-e+ geom_pointrange(data=cbind(meta_IR_plus , IR_extra), aes(x=Study,ymax=IR_high,ymin=IR_low), lwd=.82, pch="", cex=0.3, col=c(rep("lightgrey", dim(rbind(IR_raw,NAmat))[1]),"lightblue"), position = position_nudge(x = -0.15))
+IRplot
+
+
+
 ##########################################
 IFRplot_noyaxis<- IFRplot + theme(axis.title.y = element_blank(),axis.text.y = element_blank())
 
