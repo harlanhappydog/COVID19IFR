@@ -51,6 +51,9 @@ rstan_options(auto_write = TRUE)
 #################################################
 #################################################	
 
+
+
+
 x <- getURL("https://raw.githubusercontent.com/owid/covid-19-data/master/public/data/owid-covid-data.csv")
 owid <- read.csv(text = x)
 #write.csv(owid, file= '~/Desktop/UBC/RECODID_ZIKV/COVID/Rcode/owid_july16_2020.csv')
@@ -103,6 +106,9 @@ EUR_dat <- EUR_dat[EUR_dat[,"location"]%in%EEAclub,]
 EUR_dat <- EUR_dat[EUR_dat[,"location"]!="Belgium",]
 EUR_dat
 
+EUR_dat<-merge(EUR_dat, CJC_data[,c("Location", "UHC", "CVD..Both.sexes")], by.x="location", by.y="Location")
+
+EUR_dat
 
 
 # incorporate seroprevalence studies
@@ -144,8 +150,8 @@ EUR_dat <- cbind(k=(kprime+1):(kprime+dim(na.omit(EUR_dat))[1]), (EUR_dat))
 
 colnames(EUR_dat)<-c(
 "k", 
-"Study", 
 "Location",
+"iso_code",
 "date",
 "CC",
 "T",
@@ -153,21 +159,27 @@ colnames(EUR_dat)<-c(
 "aged_70_older",
 "hospital_beds_per_thousand", 
 "P", 
-"D")
+"D",
+"UHC",
+"CVD")
 
+
+phi1_all$iso_code <- c("CHE","DEU","LUX","HRV","CHE")
+phi1_all<-merge(phi1_all, EUR_dat[,c("iso_code", "UHC", "CVD"),  ], by="iso_code", all.x=TRUE, all.y=FALSE)
+
+phi1_all<-phi1_all[order(phi1_all$k),]
 
 # merge two datasets:
-fullEUR <- rbind(phi1_all[,c("k","Study", "Location", "date","T", "CC","P","D", "aged_70_older", "hospital_beds_per_thousand")],
-EUR_dat[,c("k","Study", "Location", "date","T", "CC","P","D","aged_70_older","hospital_beds_per_thousand")])
+fullEUR <- rbind(phi1_all[,c("k", "iso_code", "Location", "date","T", "CC","P","D", "aged_70_older", "hospital_beds_per_thousand", "UHC", "CVD")],
+EUR_dat[,c("k", "iso_code", "Location", "date","T", "CC","P","D","aged_70_older","hospital_beds_per_thousand", "UHC", "CVD")])
 rownames(fullEUR)<-1:dim(fullEUR)[1]
 
 # clean up :
 fullEUR$CC<-round(fullEUR$CC)
 fullEUR$P<-round(fullEUR$P)
 fullEUR$aged_70_older <-round(fullEUR$aged_70_older)
-
-fullEUR$iso_code <- c("CHE","DEU","LUX","HRV","CHE", as.character(fullEUR$Study[-c(1:kprime)]))
-
+fullEUR$UHC <- as.numeric(as.character(fullEUR$UHC))
+fullEUR$CVD <- as.numeric(as.character( sub("%","", as.character(fullEUR$CVD)) ))
 fullEUR$sero <- c(rep(1, dim(phi1_all)[1]), rep(0, dim(fullEUR)[1]-dim(phi1_all)[1]))
 
 
@@ -216,18 +228,33 @@ fullEUR4$scale_aged_70_older <- scale(log(fullEUR4$aged_70_older))
 fullEUR4$scale_hospital_beds_per_thousand <- scale(log(fullEUR4$hospital_beds_per_thousand))
 fullEUR4$scale_days_since_first_10infections <- scale(log(fullEUR4$days_since_first_10infections))
 fullEUR4$scale_days_till_lockdown <- scale(log(fullEUR4$days_till_lockdown+1))
+fullEUR4$scale_UHC <- scale(log(fullEUR4$UHC))
+fullEUR4$scale_CVD <- scale(log(fullEUR4$CVD))
+
 
 fullEUR4
 fullEUR4[,"study_names"]<- factor(paste(fullEUR4[,"k"],fullEUR4[,"Location"], sep="- "), levels=c(paste(fullEUR4[,"k"],fullEUR4[,"Location"], sep="- ")))
 
 fullEUR4[,"study_names"]
+
+
+
+
+#UHC_data<-read.csv("~/Desktop/UBC/RECODID_ZIKV/COVID/UHC.csv")
+#UHC <- (UHC_data[,c("Country.Name","Country.Code","X2017")])
+#colnames(UHC) <- c("Location", "iso_code", "UHC")
+
+#CJC_data <- read.csv("~/Desktop/UBC/RECODID_ZIKV/COVID/CJC_data.csv")
+#fullEUR5 <- merge(fullEUR4[,], CJC_data, by ="Location", all.x=TRUE, all.y=FALSE)
+#fullEUR5[order(fullEUR5$k),]
+
 ## to print:
 fullEUR <- na.omit(fullEUR4)
 fullEUR <- droplevels (fullEUR)
 
 
 
-toprint <-fullEUR[,c("Location", "date", "T", "CC", "P", "D", "aged_70_older", "hospital_beds_per_thousand" , "days_since_first_10infections", "days_till_lockdown")]
+toprint <-fullEUR[,c("Location", "date", "T", "CC", "P", "D", "aged_70_older", "hospital_beds_per_thousand" , "days_since_first_10infections", "days_till_lockdown", "UHC", "CVD")]
 
 print(xtable(toprint, digits=c(rep(0,7), rep(2,(dim(toprint)[2]-7)), 0) ),include.rownames=F)
 
@@ -260,6 +287,8 @@ vector[K] cloglogIFR;
 vector[K] cloglogIR;
 real theta;
 real beta;
+real predictIFR;
+real predictIR;
 real<lower=0> sd_sig;
 real<lower=0> sd_tau;
 }
@@ -284,6 +313,9 @@ gamma ~ exponential(lambda);
 	phi ~  uniform(1, (1+gamma));	
 	cloglogIFR ~ normal(theta, sd_tau);
 	cloglogIR ~ normal(beta, sd_sig);
+
+predictIFR ~ normal(theta, sd_tau);
+predictIR ~ normal(beta, sd_sig);
 	
 icloglogtheta ~ uniform(0, 1);
 icloglogbeta ~ uniform(0, 1);
@@ -318,6 +350,7 @@ vector[K] scale_aged_70_older;
 vector[K] scale_hospital_beds_per_thousand;
 vector[K] scale_days_since_first_10infections;
 vector[K] scale_days_till_lockdown;
+vector[K] scale_CVD;
 }
 
 parameters {
@@ -328,9 +361,12 @@ vector[K] cloglogIR;
 real theta;
 real theta1;
 real theta2;
+real theta3;
 real beta;
 real beta1;
 real beta2;
+real predictIFR;
+real predictIR;
 real<lower=0> sd_sig;
 real<lower=0> sd_tau;
 }
@@ -351,13 +387,20 @@ IFR = 1 - exp(-exp(cloglogIFR));
 model {
 theta1 ~ normal(0, 10);
 theta2 ~ normal(0, 10);
+theta3 ~ normal(0, 10);
 beta1 ~ normal(0, 10);
 beta2 ~ normal(0, 10);
 
 gamma ~ exponential(lambda);
 phi ~  uniform(1, (1+gamma));	
-cloglogIFR ~ normal(theta + theta1* scale_aged_70_older + theta2* scale_hospital_beds_per_thousand, sd_tau);
+cloglogIFR ~ normal(theta + theta1* scale_aged_70_older + theta2* scale_hospital_beds_per_thousand + theta3*scale_CVD, sd_tau);
+
 cloglogIR ~ normal(beta + beta1*scale_days_since_first_10infections + beta2*scale_days_till_lockdown, sd_sig);
+
+
+predictIFR ~ normal(theta + theta1* scale_aged_70_older + theta2* scale_hospital_beds_per_thousand + theta3*scale_CVD, sd_tau);
+
+predictIR ~ normal(beta + beta1*scale_days_since_first_10infections + beta2*scale_days_till_lockdown, sd_sig);
 	
 icloglogtheta ~ uniform(0, 1);
 icloglogbeta ~ uniform(0, 1);
@@ -389,8 +432,8 @@ datalist_sero <- list(kprime=sum(OB_sero$sero), K=dim(OB_sero)[1],  D=round(OB_s
 
 
 sero_simple <- stan(model_code = stan_mod_simple,
-                 iter = 5000, 
-                 warmup = 500,
+                 iter = 2000, 
+                 warmup = 200,
                  data = datalist_sero,
                  chains = 4,
                  thin = 100,
@@ -400,10 +443,12 @@ sero_simple <- stan(model_code = stan_mod_simple,
 
 ## diagnostics
 rstan::traceplot(sero_simple, par=c("icloglogtheta","icloglogbeta"))
+rstan::traceplot(sero_simple, par=c("predictIFR","predictIR"))
 
 
 ## results
-
+100*icloglog(summary(sero_simple)$summary["predictIFR", c("50%", "2.5%", "97.5%")])
+100*icloglog(summary(sero_simple)$summary["predictIR", c("50%", "2.5%", "97.5%")])
 100*summary(sero_simple)$summary["icloglogtheta", c("50%", "2.5%", "97.5%")]
 100*summary(sero_simple)$summary["icloglogbeta", c("50%", "2.5%", "97.5%")]
 
@@ -448,7 +493,12 @@ e <- d + theme_bw()
 
 IFR_raw <- phi1_all[, c("IFR_low",  "IFR_high")]
 
-IFRplot_sero <- e + geom_pointrange(data=cbind(meta_IFR_plus , rbind(IFR_raw,c(NA,NA))), aes(x=Study,ymax=IFR_high,ymin=IFR_low), lwd=.82, pch="", cex=0.3, col="lightgrey", position = position_nudge(x = -0.15))+ scale_y_continuous(breaks=seq(0,2,0.25))
+model_predictIFR <- data.frame(IFR_low = 100*icloglog(summary_md_ci("predictIFR")[2]), IFR_high = 100*icloglog(summary_md_ci("predictIFR")[3]))
+
+IFR_extra<-rbind(IFR_raw,model_predictIFR)
+
+
+IFRplot_sero <- e + geom_pointrange(data=cbind(meta_IFR_plus , IFR_extra), aes(x=Study,ymax=IFR_high,ymin=IFR_low), lwd=.82, pch="", cex=0.3, col=c(rep("lightgrey", dim(IFR_raw)[1]),"lightblue"), position = position_nudge(x = -0.15))+ scale_y_continuous(breaks=seq(0,2,0.25))
 
 ##########################################
 
@@ -479,7 +529,12 @@ e <- d + theme_bw()
 
 IR_raw <- phi1_all[, c("IR_low",  "IR_high")]
 
-IRplot_sero <- e + geom_pointrange(data=cbind(meta_IR_plus , rbind(IR_raw,c(NA,NA))), aes(x=Study,ymax=IR_high,ymin=IR_low), lwd=.82, pch="", cex=0.3, col="lightgrey", position = position_nudge(x = -0.15))
+
+model_predictIR <- data.frame(IR_low = 100*icloglog(summary_md_ci("predictIR")[2]), IR_high = 100*icloglog(summary_md_ci("predictIR")[3]))
+
+IR_extra<-rbind(IR_raw,model_predictIR)
+
+IRplot_sero <- e + geom_pointrange(data=cbind(meta_IR_plus , IR_extra), aes(x=Study,ymax=IR_high,ymin=IR_low), lwd=.82, pch="", cex=0.3, col=c(rep("lightgrey", dim(IR_raw)[1]),"lightblue"), position = position_nudge(x = -0.15))
 
 ##########################################
 IFRplot_sero_noyaxis<- IFRplot_sero + theme(axis.title.y = element_blank(),axis.text.y = element_blank())
@@ -502,16 +557,16 @@ grid.arrange(IRplot_sero, IFRplot_sero_noyaxis, ncol=2)
 OB <- (fullEUR)
 
 
-datalist <- list(kprime=sum(OB$sero), K=dim(OB)[1],  D=round(OB$D), P=round(OB$P), T=round(OB$T), CC=round(OB$CC), lambda=0.5, scale_aged_70_older =c(OB$scale_aged_70_older), scale_hospital_beds_per_thousand = c(OB$scale_hospital_beds_per_thousand), scale_days_since_first_10infections =c(OB$scale_days_since_first_10infections), scale_days_till_lockdown =c(OB$scale_days_till_lockdown))
+datalist <- list(kprime=sum(OB$sero), K=dim(OB)[1],  D=round(OB$D), P=round(OB$P), T=round(OB$T), CC=round(OB$CC), lambda=0.5, scale_aged_70_older =c(OB$scale_aged_70_older), scale_hospital_beds_per_thousand = c(OB$scale_hospital_beds_per_thousand), scale_days_since_first_10infections =c(OB$scale_days_since_first_10infections), scale_days_till_lockdown =c(OB$scale_days_till_lockdown), scale_CVD=c(OB$scale_CVD))
 
 
 
 MAAD <- stan(model_code = stan_mod_cov,
-                 iter = 1000, 
-                 warmup = 500,
+                 iter = 5000, 
+                 warmup = 1000,
                  data = datalist,
                  chains = 4,
-                 thin = 10,
+                 thin = 100,
                  control = list(max_treedepth = 15, adapt_delta = 0.99)
                  )
                  
@@ -527,10 +582,12 @@ rstan::traceplot(MAAD, par=c("beta1","beta2"))
 100*summary(MAAD)$summary["icloglogbeta", c("50%", "2.5%", "97.5%")]
 
 
-## equal-tailed credible intervals
-print(summary(MAAD)$summary[c("theta", "theta1", "theta2", "beta", "beta1",  "beta2", "sd_tau", "sd_sig"), c("50%", "2.5%", "97.5%")],3)
 
-main_params <- c("icloglogtheta","icloglogbeta", "theta", "theta1", "theta2", "beta", "beta1",  "beta2", "sd_tau", "sd_sig")
+main_params <- c("icloglogtheta","icloglogbeta", "theta", "theta1", "theta2", "theta3", "beta", "beta1",  "beta2", "sd_tau", "sd_sig", "gamma")
+
+## equal-tailed credible intervals
+print(summary(MAAD)$summary[main_params, c("50%", "2.5%", "97.5%")],3)
+
 
 ## HPD intervals:
 summary_md_ci_MAAD <- function(xx){
@@ -564,8 +621,16 @@ cc <- b+coord_flip() + scale_x_discrete(limits = rev(levels(meta_IFR_plus$Study)
 d <- cc
 e <- d + theme_bw()
 
-IFRplot<-e
+
+IFR_raw <- phi1_all[, c("IFR_low",  "IFR_high")]
+
+NAmat<-matrix(rep(c(NA,NA),dim(meta_IR_plus)[1]-dim(IR_raw)[1]),,2)
+colnames(NAmat)<-c("IFR_low",  "IFR_high")
+
+IFRplot<-e+ geom_pointrange(data=cbind(meta_IFR_plus , rbind(IFR_raw, NAmat)), aes(x=Study,ymax=IFR_high,ymin=IFR_low), lwd=.82, pch="", cex=0.3, col="lightgrey", position = position_nudge(x = -0.15))
 IFRplot
+
+
 ##########################################
 
 
@@ -598,6 +663,15 @@ IRplot <- e
 IRplot
 
 
+
+
+IR_raw <- phi1_all[, c("IR_low",  "IR_high")]
+
+NAmat<-matrix(rep(c(NA,NA),dim(meta_IR_plus)[1]-dim(IR_raw)[1]),,2)
+colnames(NAmat)<-c("IR_low",  "IR_high")
+IRplot <- e + geom_pointrange(data=cbind(meta_IR_plus , rbind(IR_raw, NAmat)), aes(x=Study,ymax=IR_high,ymin=IR_low), lwd=.82, pch="", cex=0.3, col="lightgrey", position = position_nudge(x = -0.15))
+
+IRplot
 ##########################################
 IFRplot_noyaxis<- IFRplot + theme(axis.title.y = element_blank(),axis.text.y = element_blank())
 
@@ -607,4 +681,32 @@ grid.arrange(IRplot, IFRplot_noyaxis, ncol=2)
 
 diff(100*HDIofMCMC(unlist(As.mcmc.list(sero_simple, par="icloglogtheta"))))
 diff(100*HDIofMCMC(unlist(As.mcmc.list(MAAD, par="icloglogtheta"))))
-                 
+            
+            
+            
+            
+##########################################
+
+
+ww<-getURL("https://raw.githubusercontent.com/OxCGRT/covid-policy-tracker/master/data/OxCGRT_latest.csv")
+lockdown<-read.csv(text=ww)
+testingdays <- lockdown [as.Date(as.character(lockdown[,"Date"]),  "%Y%m%d")> "2020-02-01" & 
+as.Date(as.character(lockdown[,"Date"]),  "%Y%m%d")< "2020-05-01" & lockdown[,"CountryCode"]%in%fullEUR$iso_code,c("Date", "CountryCode","H2_Testing.policy"),]
+
+library("tidyverse")
+testingdays_wide <- testingdays %>% spread("Date","H2_Testing.policy")
+
+testing_avg <- data.frame(CountryCode=testingdays_wide[,1],testing_avg=rowMeans(testingdays_wide[,-1]))
+
+
+phivars<-cbind(apply(cbind(1:dim(OB)[1]), 1, function(ii) paste("phi[",ii,"]", sep="")))
+phivars<-phivars[-c(1:kprime)]
+
+phi_est<-data.frame(CountryCode =OB$iso_code[-c(1:kprime)], phi= summary(MAAD)$summary[phivars,"50%"])
+
+compare_testing<-merge(testing_avg,phi_est, by="CountryCode", all=TRUE)
+
+plot(compare_testing[,"phi"], compare_testing[,"testing_avg"])
+cor(compare_testing[,"phi"], compare_testing[,"testing_avg"])
+
+     
