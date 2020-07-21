@@ -1,5 +1,5 @@
 library("nimble")
-
+print("check")
 ############
 # NIMBLE MODEL "D"
 ############
