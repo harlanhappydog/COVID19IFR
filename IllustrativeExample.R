@@ -162,7 +162,7 @@ cat(model, file="JAGS_unif.txt")
 ### illustrative: function for running M_{1} and M_{gamma=0} models for all values of gamma ###
 ############
 
-illustrative <- function(observed_data, MCMCiter=60000){
+illustrative <- function(observed_data, MCMCiter=50000){
   
   ###
   datalist <- list(K=length(observed_data$kvec), confirmed_cases=observed_data$confirmed_cases, deaths=observed_data$deaths, population=observed_data$population, tests=observed_data$tests)
@@ -331,14 +331,24 @@ filename= "MCMC_phi_gamma22.pdf")
 results_list<-list(OD, results0, results4, results11, results22)
 saveRDS(results_list, "illus_example.rds")
 
+results_list<-readRDS("illus_example.rds")
 
+results0<-results_list[[2]]
+results4<-results_list[[3]]
+results11<-results_list[[4]]
+results22<-results_list[[5]]
 ##############################
 summ <- rbind(
-  results0$QQA[c("theta", "beta0",   "sd_tau", "sd_sig" , "gamma"),],
-  results4$QQA[c("theta", "beta0",   "sd_tau", "sd_sig" , "gamma"),],
-  results11$QQA[c("theta", "beta0",   "sd_tau", "sd_sig" , "gamma"),],
-  results22$QQA[c("theta", "beta0",   "sd_tau", "sd_sig" , "gamma"),])
+  results0$QQA[c("theta", "beta0", "sd_tau", "sd_sig", "gamma"),],
+  results4$QQA[c("theta", "beta0", "sd_tau", "sd_sig", "gamma"),],
+  results11$QQA[c("theta", "beta0", "sd_tau", "sd_sig", "gamma"),],
+  results22$QQA[c("theta", "beta0", "sd_tau", "sd_sig", "gamma"),])
 
-print(round(summ,2))
-xtable(summ[], digits=3)
+summ0 <- summ
+
+summ0[rownames(summ0)%in%"theta",] <- icloglog(summ[rownames(summ)%in%"theta",])
+summ0[rownames(summ0)%in%"beta0",] <- icloglog(summ[rownames(summ)%in%"beta0",])
+
+print(round(summ0,2))
+xtable(summ0[], digits=3)
 
