@@ -24,7 +24,7 @@ seq_sim <- 0
 
 ############
 # Determine missing packages and load them:
-required_packages <- c("nimble", "MASS", "BiasedUrn", "xtable", "HDInterval")
+required_packages <- c("devtools", "nimble", "MASS", "BiasedUrn", "xtable", "HDInterval")
 not_installed <- required_packages[!(required_packages %in% installed.packages()[ , "Package"])]    
 if(length(not_installed)) install.packages(not_installed)                                           
 suppressWarnings(lapply(required_packages, require, character.only = TRUE))
@@ -99,7 +99,8 @@ if(seq==1){      if( kprime == 0 ){ phi[1:K] <- seq(1, 1+gamma_vec[jj], length.o
 ############
 
 ############
-source('initialize_MODELS.R', chdir = TRUE)
+library(devtools)
+source_url('https://raw.githubusercontent.com/harlanhappydog/COVID19IFR/master/initialize_MODELS.R')
 #################################################
 
 
@@ -351,4 +352,3 @@ for(isim in 1:nSim){
 
 
 #saveRDS(cbind(resultsmat,resultsmatS,resultsmatD), file=gsub(" ","",paste("ssfinal2_",date(), ".rds", sep="")))
-
