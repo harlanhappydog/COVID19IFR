@@ -1,3 +1,5 @@
+library("nimble")
+
 ############
 # NIMBLE MODEL "D"
 ############
