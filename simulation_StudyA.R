@@ -99,7 +99,6 @@ if(seq==1){      if( kprime == 0 ){ phi[1:K] <- seq(1, 1+gamma_vec[jj], length.o
 ############
 
 ############
-library(devtools)
 source_url('https://raw.githubusercontent.com/harlanhappydog/COVID19IFR/master/initialize_MODELS.R')
 #################################################
 
