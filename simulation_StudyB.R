@@ -1,9 +1,5 @@
 ####################################################################################
-# Determine missing packages and load them:
-required_packages <- c("devtools", "nimble", "MASS", "BiasedUrn", "xtable", "HDInterval")
-not_installed <- required_packages[!(required_packages %in% installed.packages()[ , "Package"])]    
-if(length(not_installed)) install.packages(not_installed)                                           
-suppressWarnings(lapply(required_packages, require, character.only = TRUE))
+
 
 ############
 invlog <- function(x){exp(x)/(1+exp(x))}
@@ -11,6 +7,27 @@ logit <- function(x){log(x/(1-x))}
 cloglog <- function(x){log(-log(1-x))}
 icloglog <- function(x){1 - exp(-exp(x))}
 lseq <- function(from, to, length.out){10^(seq(log10(from), log10(to), length.out = length.out))}
+
+
+set.seed(999)
+
+nSim <- 200
+
+the_lambda_vec <- c(0.75, 0.5, 0.25);
+the_gamma_vec  <- round(c(0, 1, 4, 11, lseq(22, 80, 4)))
+sim_pop <- 200000
+sim_MCMC <- 100000
+K_sim <- 20
+kprime_sim <- 8
+seq_sim <- 1
+
+
+############
+# Determine missing packages and load them:
+required_packages <- c("devtools", "nimble", "MASS", "BiasedUrn", "xtable", "HDInterval")
+not_installed <- required_packages[!(required_packages %in% installed.packages()[ , "Package"])]    
+if(length(not_installed)) install.packages(not_installed)                                           
+suppressWarnings(lapply(required_packages, require, character.only = TRUE))
 
 
 ############
@@ -26,7 +43,8 @@ simulate_data <- function(K ,
                           pop_mu , 
                           testingrate_lower , 
                           testingrate_upper , 
-                          gamma_vec ){
+                          gamma_vec ,
+                          seq = 0){
   
   ## parameters: ##
   cloglogIFR  <- rnorm(K, mean = theta, sd=sqrt(tausquared))
@@ -56,11 +74,11 @@ simulate_data <- function(K ,
     phi <- rep(0, K)  
     if( kprime > 0 ){ phi[1:kprime] <- 1; 
     if(kprime < K ){
-        phi[(kprime+1):K] <- runif(length((kprime+1):K), 1, 1+gamma_vec[jj])
-#         phi[(kprime+1):K] <- seq(1, 1+gamma_vec[jj], length.out=length((kprime+1):K))
+if(seq==0){        phi[(kprime+1):K] <- runif(length((kprime+1):K), 1, 1+gamma_vec[jj])}
+if(seq==1){         phi[(kprime+1):K] <- seq(1, 1+gamma_vec[jj], length.out=length((kprime+1):K))}
     }}
-    if( kprime == 0 ){ phi[1:K] <- runif(K, 1, 1+gamma_vec[jj]) }   
-#     if( kprime == 0 ){ phi[1:K] <- seq(1, 1+gamma_vec[jj], length.out=K) }    
+if(seq==0){     if( kprime == 0 ){ phi[1:K] <- runif(K, 1, 1+gamma_vec[jj]) }   }
+if(seq==1){      if( kprime == 0 ){ phi[1:K] <- seq(1, 1+gamma_vec[jj], length.out=K) }    }
     
     confirmed_cases[[jj]] <- rep(0,K);
     if( kprime > 0 ){ confirmed_cases[[jj]][1:kprime] <- CC_fixed}
@@ -81,17 +99,16 @@ simulate_data <- function(K ,
 ############
 
 ############
-
-K_sim <- 30
-kprime_sim <- 5
 source_url('https://raw.githubusercontent.com/harlanhappydog/COVID19IFR/master/initialize_MODELS.R')
 #################################################
 
+
+
 sim_once<-function(the_K = K_sim,
                    the_kprime = kprime_sim,
-                   true_pop_mu = 1000, 
-                   the_gamma_vec = c(0,5,20,50),
-                   the_lambda_vec = c(0.5, 1),
+                   true_pop_mu = sim_pop, 
+                   the_gamma_vec = c(1,4,10),
+                   the_lambda_vec = c(0.5,0.1),
                    MCMCiter = 10000){
   
   OB_data <- simulate_data(K = the_K,
@@ -103,7 +120,9 @@ sim_once<-function(the_K = K_sim,
                            pop_mu = true_pop_mu, 
                            testingrate_lower = 0.01, 
                            testingrate_upper = 0.10, 
-                           gamma_vec = the_gamma_vec)
+                           gamma_vec = the_gamma_vec,
+                           seq = seq_sim)
+
   HQD <- HQS <- HQ<-list()
   
   CmodelS$deaths     <- OB_data$df$deaths
@@ -114,7 +133,7 @@ sim_once<-function(the_K = K_sim,
   while(length(bb)<=1) {  # in case intial values allow for good mixing
     # Reasonable initial values:
     cloglog_infectionrate_init <- runif(the_K, 0, 0.5)
-    cloglog_IFR_init <- runif(the_K, 0, 0.1)
+    cloglog_IFR_init <- runif(the_K, 0, 0.05)
     inits <- list(cloglog_IFR = cloglog_IFR_init,
                   cloglog_infectionrate = cloglog_infectionrate_init,
                   icloglog_theta = mean(cloglog_IFR_init),
@@ -130,9 +149,9 @@ sim_once<-function(the_K = K_sim,
     if(length(bb)<=1){
       print("intial values failed")
       par(mfrow=c(3,1))
-      plot(mcmcsamplesS[,"sd_tau"], main= "intial values failed", type='l')
-      plot(mcmcsamplesS[,"beta0"], main= "intial values failed", type='l')
-      plot(mcmcsamplesS[,"theta"], main= "intial values failed", type='l')
+      plot(mcmcsamplesS[,"sd_tau"], main = "intial values failed", type = 'l')
+      plot(mcmcsamplesS[,"beta0"], main = "intial values failed", type = 'l')
+      plot(mcmcsamplesS[,"theta"], main = "intial values failed", type = 'l')
     }
   }
   
@@ -161,7 +180,7 @@ sim_once<-function(the_K = K_sim,
       while(length(aa)<=1) {  # in case intial values allow for good mixing
         # Reasonable initial values:
         cloglog_infectionrate_init <- runif(the_K, 0, 0.5)
-        cloglog_IFR_init <- runif(the_K, 0, 0.1)
+        cloglog_IFR_init <- runif(the_K, 0, 0.05)
         gamma_intial <- rexp(1, the_lambda_vec[hh])
         inits <- list(cloglog_IFR = cloglog_IFR_init,
                       cloglog_infectionrate = cloglog_infectionrate_init,
@@ -191,7 +210,7 @@ sim_once<-function(the_K = K_sim,
       while(length(dd)<=1) {  # in case intial values allow for good mixing
         # Reasonable initial values:
         cloglog_infectionrate_init <- runif(the_K, 0, 0.5)
-        cloglog_IFR_init <- runif(the_K, 0, 0.1)
+        cloglog_IFR_init <- runif(the_K, 0, 0.05)
         gamma_intial <- rexp(1, the_lambda_vec[hh])
         inits <- list(cloglog_IFR = cloglog_IFR_init,
                       cloglog_infectionrate = cloglog_infectionrate_init,
@@ -254,13 +273,7 @@ aa <- sim_once()
 
 ######################################################
 
-set.seed(999)
-
-nSim <- 200
-#the_lambda_vec <- c(1.5, 0.75, 0.5, 0.33);
-the_lambda_vec <- c(1/2, 1/6, 1/10);
-the_gamma_vec <- round(c(0, lseq(1, 100, 10)))
-true_pop_mu <- 500000
+### START OF SIMULATION ###
 
 resultsmat <- cbind(expand.grid(the_gamma_vec, the_lambda_vec), 0, 0, 0)
 colnames(resultsmat) <- c("gamma", "lambda", "coverage", "width", "improvement")
@@ -282,14 +295,11 @@ simmatD <- list()
 for(hh in 1:length(the_lambda_vec)){ simmatD[[hh]] <- list()
 for(xx in 1:length(the_gamma_vec)){ simmatD[[hh]][[xx]] <- matrix(0, nSim, 3) }}
 
-
-
-
 for(isim in 1:nSim){
   print(isim)
-  aa <- (sim_once(true_pop_mu = true_pop_mu, 
+  aa <- (sim_once(true_pop_mu = sim_pop, 
                   the_gamma_vec = the_gamma_vec, 
-                  MCMCiter = 100000, 
+                  MCMCiter = sim_MCMC, 
                   the_lambda_vec = the_lambda_vec))
   
   for(hh in 1:length(the_lambda_vec)){
@@ -298,8 +308,6 @@ for(isim in 1:nSim){
       simmatS[[hh]][[xx]][isim,] <- aa$HQS[[hh]][[xx]];
       simmatD[[hh]][[xx]][isim,] <- aa$HQD[[hh]][[xx]];
       }}
-  
-  
 
   if(isim>3){     
     for(hh in 1:length(the_lambda_vec)){
@@ -336,11 +344,10 @@ for(isim in 1:nSim){
 
     print((cbind(resultsmat,resultsmatS,resultsmatD)))
     if(isim/20==round(isim/20)){
-     saveRDS(cbind(resultsmat,resultsmatS,resultsmatD), file=gsub(" ","",paste("simstudypro_",date(), ".rds", sep="")))
+     saveRDS(cbind(resultsmat,resultsmatS,resultsmatD), file=gsub(" ","",paste("simstudyair_",date(), ".rds", sep="")))
       }
   }
 }
 
 
 #saveRDS(cbind(resultsmat,resultsmatS,resultsmatD), file=gsub(" ","",paste("ssfinal2_",date(), ".rds", sep="")))
-
