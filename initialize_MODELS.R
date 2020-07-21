@@ -80,7 +80,7 @@ phi_nodes <- modelD$expandNodeNames('phi')
 ####
 
 MCMCconf2D <- configureMCMC(modelD, monitors = c('phi','gamma','theta','beta0','sd_tau','sd_sig','cloglog_IFR','cloglog_infectionrate'))
-source('~/Desktop/UBC/RECODID_ZIKV/COVID/Rcode/samplers.R', chdir = TRUE)
+source_url('https://raw.githubusercontent.com/harlanhappydog/COVID19IFR/master/samplers.R')
 for(i in seq_along(phi_nodes)) {
   ## We could remove some default samplers, but I'll leave them in for now.
   MCMCconf2D$addSampler(type = 'sampler_infrate_phi',
@@ -178,7 +178,7 @@ phi_nodes <- model$expandNodeNames('phi')
 ####
 
 MCMCconf2 <- configureMCMC(model, monitors = c('phi','gamma','theta','beta0','sd_tau','sd_sig','cloglog_IFR','cloglog_infectionrate'))
-source('~/Desktop/UBC/RECODID_ZIKV/COVID/Rcode/samplers.R', chdir = TRUE)
+source_url("https://raw.githubusercontent.com/harlanhappydog/COVID19IFR/master/samplers.R")
 for(i in seq_along(phi_nodes)) {
   ## We could remove some default samplers, but I'll leave them in for now.
   MCMCconf2$addSampler(type = 'sampler_infrate_phi',
@@ -267,7 +267,7 @@ phi_nodes <- modelS$expandNodeNames('phi')
 ####
 
 MCMCconf2S <- configureMCMC(modelS, monitors = c('phi','theta','beta0','sd_tau','sd_sig','cloglog_IFR','cloglog_infectionrate'))
-source('~/Desktop/UBC/RECODID_ZIKV/COVID/Rcode/samplers.R', chdir = TRUE)
+source_url("https://raw.githubusercontent.com/harlanhappydog/COVID19IFR/master/samplers.R")
 for(i in seq_along(phi_nodes)) {
   ## We could remove some default samplers, but I'll leave them in for now.
   MCMCconf2S$addSampler(type = 'sampler_infrate_phi',
