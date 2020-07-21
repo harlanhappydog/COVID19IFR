@@ -1,6 +1,6 @@
 ####################################################################################
 # Determine missing packages and load them:
-required_packages <- c("nimble", "MASS", "BiasedUrn", "xtable", "HDInterval")
+required_packages <- c("devtools", "nimble", "MASS", "BiasedUrn", "xtable", "HDInterval")
 not_installed <- required_packages[!(required_packages %in% installed.packages()[ , "Package"])]    
 if(length(not_installed)) install.packages(not_installed)                                           
 suppressWarnings(lapply(required_packages, require, character.only = TRUE))
@@ -84,7 +84,7 @@ simulate_data <- function(K ,
 
 K_sim <- 30
 kprime_sim <- 5
-source('initialize_MODELS.R', chdir = TRUE)
+source_url('https://raw.githubusercontent.com/harlanhappydog/COVID19IFR/master/initialize_MODELS.R')
 #################################################
 
 sim_once<-function(the_K = K_sim,
