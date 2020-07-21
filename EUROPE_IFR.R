@@ -157,7 +157,7 @@ phi1_all[,"CC"]<-round(phi1_all[,"a_par"])
 phi1_all[,"T"]<-round(phi1_all[,"a_par"]+phi1_all[,"b_par"])
 
 
-# what is the implied IFR:
+# what is the implied IFR for each of the sero-studies:
 IFR_raw <- t(apply(rbind(1: dim(phi1_all)[1]),2,function(x){
 c(100*prop.test(x=phi1_all[x,"D"], n=phi1_all[x,"P"]*phi1_all[x,c("IR_high")]/100)$conf.int[1],
 100*prop.test(x=phi1_all[x,"D"], n=phi1_all[x,"P"]*phi1_all[x,c("IR_low")]/100)$conf.int[2])}))
@@ -287,6 +287,8 @@ fullEUR<-fullEUR4
 fullEUR <- droplevels (fullEUR)
 fullEUR
 
+write.csv(fullEUR, '~/Desktop/UBC/RECODID_ZIKV/COVID/Rcode/EUROPE_DATA.csv')
+
 printEUR<-na.omit(fullEUR[,c("Location", "date", "T", "CC", "P", "D",  "aged_70_older", "hospital_beds_per_thousand" , "days_since_first_10infections", "days_till_lockdown", "population_density")])
 
 
@@ -301,7 +303,7 @@ toprint2 <- printEUR[,c("Location",  "aged_70_older", "hospital_beds_per_thousan
 
 rownames(toprint2)<-1:dim(toprint2)[1]
 
-print(xtable(toprint2, digits=c(rep(0,3), rep(2,(dim(toprint2)[2]-3)), 0) ),include.rownames=T)
+print(xtable(toprint2, digits=c(rep(0,3), 2, rep(0,3)) ),include.rownames=T)
 
 
 
@@ -419,7 +421,7 @@ print(summary(sero_simple)$summary[main_params, c("50%", "2.5%", "97.5%")],3)
 summary_md_ci <- function(xx){
 c(md=summary(sero_simple)$summary[xx,"50%"], lower=HDIofMCMC(unlist(As.mcmc.list(sero_simple, par=xx)))[1], higher=HDIofMCMC(unlist(As.mcmc.list(sero_simple, par=xx)))[2])}
 
-print(data.frame(param= main_params, t(apply(cbind(main_params),1,function(x) summary_md_ci(x)))),digits=1)
+data.frame(param= main_params, round(t(apply(cbind(main_params),1,function(x) summary_md_ci(x))),3))
 
 
 OB_sero[,"study_names"]<- factor(paste(1:dim(OB_sero)[1], OB_sero[,"Location"], sep="- "), levels=c(paste(1:dim(OB_sero)[1], OB_sero[,"Location"], sep="- ")))
@@ -438,7 +440,8 @@ meta_IFR_plus <- rbind(meta_IFR, data.frame(study_names="Model estimate", rbind(
 colnames(meta_IFR_plus) <- c("Study","IFR","lower","upper")
 meta_IFR_plus<-droplevels(meta_IFR_plus)
 
-a <- ggplot(meta_IFR_plus, aes(x= Study, y=IFR,ymax=upper,ymin=lower,size=2))
+a <- ggplot(meta_IFR_plus, aes(x= Study, y=IFR,ymax=upper,ymin=lower,size=2))+ ylab("IFR (%)")
+
 
 b <- a+geom_pointrange(cex=c(rep(0.45, datalist_sero$K), 1), col=c(rep("tomato", datalist_sero$kprime), rep("darkolivegreen4", datalist_sero$K-datalist_sero$kprime), "black"))
 
@@ -478,7 +481,8 @@ meta_IR_plus <- rbind(meta_IR, data.frame(study_names="Model estimate", rbind(10
 
 colnames(meta_IR_plus) <- c("Study","IR","lower","upper")
 meta_IR_plus <-droplevels(meta_IR_plus)
-a <- ggplot(meta_IR_plus, aes(x= Study, y=IR,ymax=upper,ymin=lower,size=2))
+a <- ggplot(meta_IR_plus, aes(x= Study, y=IR,ymax=upper,ymin=lower,size=2)) + ylab("IR (%)")
+
 
 b <- a+geom_pointrange(cex=c(rep(0.45, datalist_sero$K), 1), col=c(rep("tomato", datalist_sero$kprime), rep("darkolivegreen4", datalist_sero$K-datalist_sero$kprime), "black"))
 
@@ -631,7 +635,7 @@ print(summary(MAAD)$summary[main_params, c("50%", "2.5%", "97.5%")],3)
 summary_md_ci_MAAD <- function(xx){
 c(md=summary(MAAD)$summary[xx,"50%"], lower=HDIofMCMC(unlist(As.mcmc.list(MAAD, par=xx)))[1], higher=HDIofMCMC(unlist(As.mcmc.list(MAAD, par=xx)))[2])}
 
-print(data.frame(param=c(main_params),t(apply(cbind(c(main_params)),1,function(x) summary_md_ci_MAAD(x)))),digits=3)
+data.frame(param=c(main_params),round(t(apply(cbind(c(main_params)),1,function(x) summary_md_ci_MAAD(x))),3))
 
 OB[,"study_names"]<- factor(paste(1:dim(OB)[1], OB[,"Location"], sep="- "), levels=c(paste(1:dim(OB)[1], OB[,"Location"], sep="- ")))
 
@@ -648,7 +652,8 @@ meta_IFR_plus <- rbind(meta_IFR, data.frame(study_names="Model estimate", rbind(
 
 colnames(meta_IFR_plus) <- c("Study", "IFR","lower","upper")
 
-a <- ggplot(meta_IFR_plus, aes(x= Study, y=IFR,ymax=upper,ymin=lower,size=2))
+a <- ggplot(meta_IFR_plus, aes(x= Study, y=IFR,ymax=upper,ymin=lower,size=2))+ ylab("IFR (%)")
+
 
 b <- a+geom_pointrange(cex=c(rep(0.45, datalist$K), 0.5), col=c(rep("tomato", datalist$kprime), rep("darkolivegreen4", datalist$K-datalist$kprime), "black"))
 
@@ -693,7 +698,7 @@ colnames(meta_IR_plus) <- c("Study","IR","lower","upper")
 meta_IR_plus <-droplevels(meta_IR_plus)
 
 
-a <- ggplot(meta_IR_plus, aes(x= Study, y=IR,ymax=upper,ymin=lower,size=2))
+a <- ggplot(meta_IR_plus, aes(x= Study, y=IR,ymax=upper,ymin=lower,size=2)) + ylab("IR (%)")
 
 b <- a+geom_pointrange(cex=c(rep(0.45, datalist$K), 0.5), col=c(rep("tomato", datalist$kprime), rep("darkolivegreen4", datalist$K-datalist$kprime), "black"))
 
@@ -745,6 +750,10 @@ diff(100*HDIofMCMC(unlist(As.mcmc.list(MAAD, par="predictIFR"))))
             
 diff(100*HDIofMCMC(unlist(As.mcmc.list(sero_simple, par="icloglogtheta"))))
 diff(100*HDIofMCMC(unlist(As.mcmc.list(MAAD, par="icloglogtheta"))))
+
+
+round(100*HDIofMCMC(unlist(As.mcmc.list(sero_simple, par="icloglogtheta"))),3)
+round(100*HDIofMCMC(unlist(As.mcmc.list(MAAD, par="icloglogtheta"))),3)
             
        
 ##########################################
@@ -753,8 +762,10 @@ diff(100*HDIofMCMC(unlist(As.mcmc.list(MAAD, par="icloglogtheta"))))
 
 ww<-getURL("https://raw.githubusercontent.com/OxCGRT/covid-policy-tracker/master/data/OxCGRT_latest.csv")
 lockdown<-read.csv(text=ww)
+
+write.csv(lockdown,'~/Desktop/UBC/RECODID_ZIKV/COVID/Rcode/lockdown.csv')
 testingdays <- lockdown [as.Date(as.character(lockdown[,"Date"]),  "%Y%m%d")> "2020-02-01" & 
-as.Date(as.character(lockdown[,"Date"]),  "%Y%m%d")< "2020-05-01" & lockdown[,"CountryCode"]%in%fullEUR$iso_code,c("Date", "CountryCode","H2_Testing.policy"),]
+as.Date(as.character(lockdown[,"Date"]),  "%Y%m%d")< "2020-04-01" & lockdown[,"CountryCode"]%in%fullEUR$iso_code,c("Date", "CountryCode","H2_Testing.policy"),]
 
 library("tidyverse")
 testingdays_wide <- testingdays %>% spread("Date","H2_Testing.policy")
@@ -765,7 +776,7 @@ testing_avg <- data.frame(CountryCode=testingdays_wide[,1],testing_avg=rowMeans(
 phivars<-cbind(apply(cbind(1:dim(OB)[1]), 1, function(ii) paste("phi[",ii,"]", sep="")))
 phivars<-phivars[-c(1:kprime)]
 
-phi_est<-data.frame(CountryCode =OB$iso_code[-c(1:kprime)], phi= summary(MAAD)$summary[phivars,"50%"])
+phi_est<-data.frame(CountryCode =OB$iso_code[-c(1:kprime)], phi= summary(MAAD)$summary[phivars,"mean"])
 
 compare_testing<-merge(testing_avg,phi_est, by="CountryCode", all=TRUE)
 
@@ -792,11 +803,12 @@ legend_bubbles <- data.frame(
 mutate(radius = sqrt(size / pi))   
 
 
-gg + geom_point(data = legend_bubbles,
+gg + scale_y_continuous(limits = c(0, 1.75))+geom_point(data = legend_bubbles,
              #  The "radius/301" was trial and error. Better way?
-             aes(x = 1.55, y = 0.4 + (radius/345)/191, size = size),
+             aes(x = 1.65, y = 0.0125 + (radius/345)/140, size = size),
              shape = 21, color = "black", fill = NA) +
   geom_text(data = legend_bubbles, size = 2.5,
-            aes(x = 1.55, y = 0.4108 + (2.15 * radius/351)/191, label = label)) +
-  annotate("text", x = 1.55, y = 0.58, label = "Population", fontface = "bold") + labs(y= "H2 index", x=expression(phi[k]), size=3) + theme(axis.text=element_text(size=12),
-        axis.title=element_text(size=14))
+            aes(x = 1.65, y = 0.027 + (2.15 * radius/351)/140, label = label)) +
+  annotate("text", x = 1.65, y = 0.24, label = "Population", fontface = "bold") + labs(y= "H2 index", x=expression(phi[k]), size=3) + theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14)) 
+        #+geom_smooth(span=2, se=FALSE, mapping = aes(weight = P))
