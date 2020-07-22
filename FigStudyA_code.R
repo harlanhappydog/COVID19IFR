@@ -9,7 +9,7 @@
 library(ggplot2)
 library(gridExtra)
 
-sim_results<-readRDS("simstudyair_ThuMay1410_20_192020.rds")
+sim_results<-readRDS(url("https://github.com/harlanhappydog/COVID19IFR/blob/master/STUDY_A_results.rds?raw=true"))
 
 sim_results
 
@@ -23,7 +23,7 @@ RR2 <-RR
 
 g1 <- ggplot(mapping=aes(x = gamma1, y = coverage, col = lambda), data = RR[RR$M==2,]) + 
   labs(col = expression(lambda)) +  geom_line(lwd=1.1)  + geom_point(cex=2) + 
-  scale_y_continuous(breaks=c(0,0.5,0.8,0.9,1), limits=c(0,1)) + scale_x_continuous(trans='log10', breaks = RR$gamma1, labels = RR$gamma, name = expression(gamma))+ guides(color = FALSE)+geom_hline(yintercept = unique(RR[RR$M==3,"coverage"]), linetype = "dotted", lwd=1.1) 
+  scale_y_continuous(breaks=c(0,0.5,0.8,0.9,1), limits=c(0,1), name = expression(paste("coverage of 90% CI for ", theta))) + scale_x_continuous(trans='log10', breaks = RR$gamma1, labels = RR$gamma, name = expression(gamma))+ guides(color = FALSE)+geom_hline(yintercept = unique(RR[RR$M==3,"coverage"]), linetype = "dotted", lwd=1.1) 
 g2 <- ggplot(mapping=aes(x=gamma1, y=width, col= lambda), data=RR[RR$M==2,]) + labs(col = expression(lambda)) +
   geom_line(lwd=1.1)  + geom_point(cex=2) + 
   scale_x_continuous(trans='log10', breaks=RR$gamma1, labels = RR$gamma, name=expression(gamma)) + 
@@ -35,7 +35,7 @@ g2 <- ggplot(mapping=aes(x=gamma1, y=width, col= lambda), data=RR[RR$M==2,]) + l
 
 g1a <- ggplot(mapping=aes(x = gamma1, y = coverage, col = lambda), data = RR[RR$M==1,]) + 
   labs(col = expression(lambda)) +  geom_line(linetype = "dashed", lwd=1.1)  + 
-  geom_point(cex=2) + scale_y_continuous(breaks=c(0,0.5,0.8,0.9,1), limits=c(0,1)) + 
+  geom_point(cex=2) + scale_y_continuous(breaks=c(0,0.5,0.8,0.9,1), limits=c(0,1), name = expression(paste("coverage of 90% CI for ", theta))) + 
   scale_x_continuous(trans='log10', breaks = RR$gamma1, labels = RR$gamma, name = expression(gamma)) + 
   guides(color = FALSE)
 
