@@ -350,4 +350,4 @@ for(isim in 1:nSim){
 }
 
 
-#saveRDS(cbind(resultsmat,resultsmatS,resultsmatD), file=gsub(" ","",paste("ssfinal2_",date(), ".rds", sep="")))
+saveRDS(cbind(resultsmat,resultsmatS,resultsmatD), file="STUDY_A_results.rds", sep="")))
