@@ -47,6 +47,9 @@ rstan_options(auto_write = TRUE)
 # Set number of iterations
 MCMCiter <- 10000
 
+
+set.seed(123)
+
 #################################################
 #################################################
 ### BUILD THE DATASET
@@ -68,7 +71,7 @@ EUR_may1_all <- (owid[owid[,"continent"]%in%"Europe" & owid[,"date"]%in%c("2020-
 EUR_may1 <- EUR_may1_all[,c("iso_code", "location", "date", "total_cases", "total_tests", "total_cases_per_million", "aged_70_older", "hospital_beds_per_thousand", "population_density")]
 
 
-# only need certain variables:
+# take a quick look at test_units:
 EUR_may1_all[ EUR_may1_all[,"date"]%in%c("2020-05-01") ,c("iso_code", "location", "date", "total_cases", "total_tests", "total_cases_per_million", "aged_70_older", "hospital_beds_per_thousand", "tests_units")]
 
 
@@ -123,7 +126,6 @@ EUR_dat0<-EUR_dat
 EUR_dat<-merge(EUR_dat, CJC_data[,c("Location", "X65.years..both.","CVD..Both.sexes")], by.x="location", by.y="Location", all.x=TRUE)
 
 
-
 UHC_dat<-read.csv("~/Desktop/UBC/RECODID_ZIKV/COVID/UHC.csv")
 
 
@@ -170,9 +172,6 @@ phi1_all <- cbind(phi1_all , IFR_raw)
 # prepare to  merge the two datasets together:
 kprime <- dim(phi1_all)[1]
 
-
-
-
 colnames(EUR_dat)<-c(
 "iso_code",
 "Location",
@@ -188,9 +187,6 @@ colnames(EUR_dat)<-c(
 "aged_65_older",
 "CVD",
 "UHC")
-
-
-
 
 phi1_all$iso_code <- c("CHE","DEU","LUX","HRV","CHE")
 phi1_all<-merge(phi1_all, EUR_dat[,c("iso_code", "UHC","aged_65_older", "CVD"),  ], by="iso_code", all.x=TRUE, all.y=FALSE)
@@ -220,8 +216,6 @@ fullEUR$CVD <- as.numeric(as.character( sub("%","", as.character(fullEUR$CVD)) )
 ## add additional covariate: days_since_first_10infections
 
 fullEUR1<-fullEUR
-
-
 fullEUR1
 
 
@@ -238,7 +232,7 @@ as.numeric(0+as.Date(fullEUR1[x,"date"]  ) -
 }
 
 
-## days between first case and social distancing:
+## add additional covariate: days between first case and social distancing
 
 fullEUR2<-fullEUR1
 d<-NULL
@@ -389,7 +383,7 @@ for (k in (kprime+1):K){
 
 OB_sero <- fullEUR[fullEUR$sero==1,]
 
-datalist_sero <- list(kprime=sum(OB_sero$sero), K=dim(OB_sero)[1],  D=round(OB_sero$D), P=round(OB_sero$P), T=round(OB_sero$T), CC=round(OB_sero$CC), lambda=0.5)
+datalist_sero <- list(kprime=sum(OB_sero$sero), K=dim(OB_sero)[1],  D=round(OB_sero$D), P=round(OB_sero$P), T=round(OB_sero$T), CC=round(OB_sero$CC), lambda = 0.5)
 
 
 sero_simple <- stan(model_code = stan_mod_simple,
@@ -435,7 +429,7 @@ study_names <- OB_sero[ ,"study_names"]
 
 meta_IFR <- data.frame(study_names, 100*t(apply(IFRvars, 1, function(xx){summary_md_ci(xx)})))
 
-meta_IFR_plus <- rbind(meta_IFR, data.frame(study_names="Model estimate", rbind(100*summary_md_ci("icloglogtheta"))))
+meta_IFR_plus <- rbind(meta_IFR, data.frame(study_names="Overall", rbind(100*summary_md_ci("icloglogtheta"))))
 
 colnames(meta_IFR_plus) <- c("Study","IFR","lower","upper")
 meta_IFR_plus<-droplevels(meta_IFR_plus)
@@ -477,7 +471,7 @@ study_names <- OB_sero[ ,"study_names"]
 
 meta_IR <- data.frame(study_names, 100*t(apply(IRvars, 1, function(xx){summary_md_ci(xx)})))
 
-meta_IR_plus <- rbind(meta_IR, data.frame(study_names="Model estimate", rbind(100*summary_md_ci("icloglogbeta"))))
+meta_IR_plus <- rbind(meta_IR, data.frame(study_names="Overall", rbind(100*summary_md_ci("icloglogbeta"))))
 
 colnames(meta_IR_plus) <- c("Study","IR","lower","upper")
 meta_IR_plus <-droplevels(meta_IR_plus)
@@ -637,7 +631,10 @@ c(md=summary(MAAD)$summary[xx,"50%"], lower=HDIofMCMC(unlist(As.mcmc.list(MAAD, 
 
 data.frame(param=c(main_params),round(t(apply(cbind(c(main_params)),1,function(x) summary_md_ci_MAAD(x))),3))
 
+
 OB[,"study_names"]<- factor(paste(1:dim(OB)[1], OB[,"Location"], sep="- "), levels=c(paste(1:dim(OB)[1], OB[,"Location"], sep="- ")))
+
+
 
 ##########################################
 # IFR variables
@@ -648,7 +645,7 @@ study_names <- OB[ ,"study_names"]
 meta_IFR <- data.frame(study_names, 100*t(apply(IFRvars, 1, function(xx){summary_md_ci_MAAD(xx)})))
 
 
-meta_IFR_plus <- rbind(meta_IFR, data.frame(study_names="Model estimate", rbind(100*summary_md_ci_MAAD("icloglogtheta"))))
+meta_IFR_plus <- rbind(meta_IFR, data.frame(study_names="Overall", rbind(100*summary_md_ci_MAAD("icloglogtheta"))))
 
 colnames(meta_IFR_plus) <- c("Study", "IFR","lower","upper")
 
@@ -692,7 +689,7 @@ study_names <- OB[,"study_names"]
 
 meta_IR <- data.frame(study_names, 100*t(apply(IRvars, 1, function(xx){summary_md_ci_MAAD(xx)})))
 
-meta_IR_plus <- rbind(meta_IR, data.frame(study_names="Model estimate", rbind(100*summary_md_ci_MAAD("icloglogbeta"))))
+meta_IR_plus <- rbind(meta_IR, data.frame(study_names="Overall", rbind(100*summary_md_ci_MAAD("icloglogbeta"))))
 
 colnames(meta_IR_plus) <- c("Study","IR","lower","upper")
 meta_IR_plus <-droplevels(meta_IR_plus)
@@ -755,6 +752,14 @@ diff(100*HDIofMCMC(unlist(As.mcmc.list(MAAD, par="icloglogtheta"))))
 round(100*HDIofMCMC(unlist(As.mcmc.list(sero_simple, par="icloglogtheta"))),3)
 round(100*HDIofMCMC(unlist(As.mcmc.list(MAAD, par="icloglogtheta"))),3)
             
+      
+round(100*summary(sero_simple)$summary["icloglogtheta", c("50%")],3)
+round(100*HDIofMCMC(unlist(As.mcmc.list(sero_simple, par="icloglogtheta"))),3)
+
+round(100*summary(MAAD)$summary["icloglogtheta", c("50%")],3)
+round(100*HDIofMCMC(unlist(As.mcmc.list(MAAD, par="icloglogtheta"))),3)
+
+
        
 ##########################################
 # Scaterplot of phi_k vs. H2 index
