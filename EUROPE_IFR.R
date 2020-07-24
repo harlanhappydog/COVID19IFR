@@ -283,7 +283,7 @@ fullEUR<-fullEUR4
 fullEUR <- droplevels (fullEUR)
 fullEUR
 
-#write.csv(fullEUR, '~/Desktop/UBC/RECODID_ZIKV/COVID/Rcode/EUROPE_DATA.csv')
+write.csv(fullEUR, '~/Desktop/UBC/RECODID_ZIKV/COVID/Rcode/EUROPE_DATA.csv')
 
 
 
