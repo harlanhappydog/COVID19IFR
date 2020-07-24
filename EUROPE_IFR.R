@@ -126,7 +126,9 @@ EUR_dat0<-EUR_dat
 EUR_dat<-merge(EUR_dat, CJC_data[,c("Location", "X65.years..both.","CVD..Both.sexes")], by.x="location", by.y="Location", all.x=TRUE)
 
 
-UHC_dat<-read.csv("~/Desktop/UBC/RECODID_ZIKV/COVID/UHC.csv")
+
+uhc_data<-getURL("https://raw.githubusercontent.com/harlanhappydog/COVID19IFR/master/UHC.csv")
+UHC_dat<-read.csv(text = uhc_data)
 
 
 EUR_dat00<-EUR_dat
@@ -281,7 +283,11 @@ fullEUR<-fullEUR4
 fullEUR <- droplevels (fullEUR)
 fullEUR
 
-write.csv(fullEUR, '~/Desktop/UBC/RECODID_ZIKV/COVID/Rcode/EUROPE_DATA.csv')
+#write.csv(fullEUR, '~/Desktop/UBC/RECODID_ZIKV/COVID/Rcode/EUROPE_DATA.csv')
+
+
+
+# Printing data tables for manuscript:
 
 printEUR<-na.omit(fullEUR[,c("Location", "date", "T", "CC", "P", "D",  "aged_70_older", "hospital_beds_per_thousand" , "days_since_first_10infections", "days_till_lockdown", "population_density")])
 
